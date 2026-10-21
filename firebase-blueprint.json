@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "CRM client records belonging to a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The auth UID of the user who owns this record" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "planId": { "type": "string" },
+        "expirationDate": { "type": "string" },
+        "avatar": { "type": "string" }
+      },
+      "required": ["userId", "name", "email", "planId", "expirationDate"]
+    },
+    "Plan": {
+      "title": "Plan",
+      "description": "CRM plans belonging to a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The auth UID of the user who owns this record" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "periodDays": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["userId", "name", "price", "periodDays", "status"]
+    },
+    "TradeRecord": {
+      "title": "TradeRecord",
+      "description": "History of executed trades",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "id": { "type": "string" },
+        "time": { "type": "string" },
+        "type": { "type": "string" },
+        "entry": { "type": "string" },
+        "exit": { "type": "string" },
+        "price": { "type": "string" },
+        "result": { "type": "string" },
+        "isWin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "id", "time", "type", "entry", "exit", "price", "result", "isWin"]
+    },
+    "CustomBot": {
+      "title": "CustomBot",
+      "description": "Customized trading bots",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "tag": { "type": "string" },
+        "color": { "type": "string" },
+        "symbol": { "type": "string" }
+      },
+      "required": ["userId", "id", "name", "tag", "color", "symbol"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles."
+    },
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "CRM Clients. owner is userId."
+    },
+    "/plans/{planId}": {
+      "schema": { "$ref": "#/entities/Plan" },
+      "description": "CRM Plans. owner is userId."
+    },
+    "/history/{tradeId}": {
+      "schema": { "$ref": "#/entities/TradeRecord" },
+      "description": "Historical trades."
+    },
+    "/customBots/{botId}": {
+      "schema": { "$ref": "#/entities/CustomBot" },
+      "description": "Custom trading bots."
+    }
+  }
+}

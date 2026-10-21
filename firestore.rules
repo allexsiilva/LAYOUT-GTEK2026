@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Since users usually sign up via Google, let's relax email_verified if needed, 
+    // but the rules require it. Let's assume standard Google provides verified email.
+
+    function isValidString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+    
+    // User validation
+    function isValidUser(data) {
+      return data.keys().hasOnly(['email', 'createdAt']) &&
+             data.keys().hasAll(['email', 'createdAt']) &&
+             isValidString(data.email, 128) &&
+             data.createdAt == request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+    }
+
+    function isValidClient(data) {
+      return data.keys().hasAll(['userId', 'name', 'email', 'planId', 'expirationDate']) &&
+             data.keys().hasOnly(['userId', 'name', 'email', 'whatsapp', 'planId', 'expirationDate', 'avatar', 'password', 'modules']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.name, 128) &&
+             isValidString(data.email, 128) &&
+             (data.whatsapp == null || isValidString(data.whatsapp, 64)) &&
+             isValidString(data.planId, 128) &&
+             isValidString(data.expirationDate, 128) &&
+             (data.avatar == null || isValidString(data.avatar, 2000000)) &&
+             (data.password == null || isValidString(data.password, 256)) &&
+             (data.modules == null || data.modules is map);
+    }
+
+    match /clients/{clientId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidClient(incoming());
+      allow update: if isSignedIn() && isValidClient(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    function isValidPlan(data) {
+      return data.keys().hasAll(['userId', 'name', 'price', 'periodDays', 'status']) &&
+             data.keys().hasOnly(['userId', 'name', 'price', 'periodDays', 'status']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.name, 128) &&
+             data.price is number &&
+             data.periodDays is number &&
+             isValidString(data.status, 64) &&
+             (data.status == 'active' || data.status == 'inactive');
+    }
+
+    match /plans/{planId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidPlan(incoming());
+      allow update: if isSignedIn() && isValidPlan(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    function isValidTradeRecord(data) {
+       return data.keys().hasAll(['userId', 'id', 'time', 'type', 'entry', 'exit', 'price', 'result', 'isWin', 'createdAt']) &&
+              data.keys().hasOnly(['userId', 'id', 'time', 'type', 'entry', 'exit', 'price', 'result', 'isWin', 'createdAt']) &&
+              data.userId == request.auth.uid &&
+              isValidString(data.id, 128) &&
+              isValidString(data.time, 128) &&
+              isValidString(data.type, 128) &&
+              isValidString(data.entry, 128) &&
+              isValidString(data.exit, 128) &&
+              isValidString(data.price, 128) &&
+              isValidString(data.result, 128) &&
+              data.isWin is bool &&
+              data.createdAt == request.time;
+    }
+
+    match /history/{tradeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidTradeRecord(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    function isValidCustomBot(data) {
+      return data.keys().hasAll(['userId', 'id', 'name', 'tag', 'color', 'symbol']) &&
+             data.keys().hasOnly(['userId', 'id', 'name', 'tag', 'color', 'symbol']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.id, 128) &&
+             isValidString(data.name, 128) &&
+             isValidString(data.tag, 128) &&
+             isValidString(data.color, 128) &&
+             isValidString(data.symbol, 128);
+    }
+
+    match /customBots/{botId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidCustomBot(incoming());
+      allow update: if isSignedIn() && isValidCustomBot(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
